@@ -78,3 +78,13 @@ package-lock.json
 .eslintcache
 *v8.log
 /lib/
+# Build output
+agent_ts/dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+agent_ts/.env
+agent_ts/.env.*
+!agent_ts/.env.example

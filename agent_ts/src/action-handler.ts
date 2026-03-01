@@ -26,31 +26,12 @@ export class MyFunctionHandler implements FunctionHandler {
   }
 
   async callFunction(functionName: string, parameters: any): Promise<[any, any]> {
-    const unpackedParams: { [key: string]: any } = {};
-  
-    /**
-     * Unpacks the parameters from the return control call and formats them 
-     * in to a generic payload for the function handler tools.
-     */
-    for (const param of parameters) {
-      const { name, type, value } = param;
-      
-      switch (type) {
+    const unpackedParams = this.normalizeParams(parameters);
 
-        case 'number':
-          unpackedParams[name] = Number(value);
-          break;
-        case 'string':
-          unpackedParams[name] = value;
-          break;
-
-        default:
-          throw new Error(`Unsupported parameter type: ${type}`);
-      }
-    }
-
-    // Which action(tool) is being called? 
     switch (functionName) {
+      case 'action_stop':
+        this.mcBot.clearControlStates();
+        return [{ message: 'Stopped bot movement.' }, 'REPROMPT'];
 
       case 'action_get_time':
         return action_get_time(this.mcBot, this.mcData, unpackedParams);
@@ -88,5 +69,37 @@ export class MyFunctionHandler implements FunctionHandler {
       default:
         throw new Error(`Unknown function: ${functionName}`);
     }
+  }
+
+  private normalizeParams(parameters: any): Record<string, unknown> {
+    if (Array.isArray(parameters)) {
+      const unpackedParams: Record<string, unknown> = {};
+      for (const param of parameters) {
+        if (!param || typeof param !== 'object') {
+          continue;
+        }
+
+        const { name, type, value } = param;
+
+        switch (type) {
+          case 'number':
+            unpackedParams[name] = Number(value);
+            break;
+          case 'string':
+            unpackedParams[name] = value;
+            break;
+          default:
+            unpackedParams[name] = value;
+            break;
+        }
+      }
+      return unpackedParams;
+    }
+
+    if (parameters && typeof parameters === 'object') {
+      return parameters as Record<string, unknown>;
+    }
+
+    return {};
   }
 }

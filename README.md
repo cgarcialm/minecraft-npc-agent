@@ -33,7 +33,10 @@ cd agent_ts
 npm install
 ```
 
-2. Configure environment (`agent_ts/.env`).
+2. Configure environment:
+```bash
+cp agent_ts/.env.example agent_ts/.env
+```
 Current state: env schema is still being finalized during refactor.
 Use this as a target example (planned keys, subject to change until MR1/MR2):
 ```env
