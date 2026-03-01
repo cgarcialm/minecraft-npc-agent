@@ -12,7 +12,11 @@ This file is intentionally static and should not require per-MR updates.
 2. Determine the next MR/checkpoint by:
    - inspecting merged PRs / git history, and
    - selecting the next incomplete checkpoint in `docs/PROJECT_PLAN.md`.
-3. Create/use the branch name defined by the plan naming convention.
+3. Mandatory branch bootstrap (must run in this order before creating a checkpoint branch):
+   - `git checkout main`
+   - `git pull origin main`
+   - `git checkout -b <checkpoint-branch-name>`
+4. Create/use the branch name defined by the plan naming convention.
 
 ## Expected Behavior
 1. Implement exactly one checkpoint per branch/MR.
