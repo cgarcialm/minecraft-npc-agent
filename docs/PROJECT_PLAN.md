@@ -105,10 +105,10 @@ Execution order:
 3. Review Agent performs a review pass for regressions, safety gaps, and missing tests.
 
 Merge gate:
-1. An MR is merge-ready only when all three roles are completed and documented in the MR description.
+1. An MR is merge-ready only when all three roles are completed and documented in `docs/MR_HANDOFF.md`.
 2. Missing any required role heading is a merge blocker.
 
-Required MR notes:
+Required handoff notes (`docs/MR_HANDOFF.md`):
 1. Implementation summary (files changed + rationale).
 2. Testing evidence (commands run + results).
 3. Review findings (issues found/fixed, or explicit "no findings").
@@ -118,7 +118,7 @@ Reference checklists:
 1. Implementation: `docs/IMPLEMENTATION_CHECKLIST.md`
 2. Testing: `docs/TESTING_CHECKLIST.md`
 3. Review: `docs/REVIEW_CHECKLIST.md`
-4. MR description template: `docs/MR_HANDOFF_TEMPLATE.md`
+4. Handoff template: `docs/MR_HANDOFF_TEMPLATE.md`
 
 ### Role Guidelines
 Implementation Agent:

@@ -32,7 +32,7 @@ Deliver checkpoint-scoped code changes that are correct, minimal, and ready for 
 - Code compiles (`npm run build` in `agent_ts`).
 
 6. Role handoff format
-- Handoff notes are documented under `## Implementation Agent`.
+- Handoff notes are documented in `docs/MR_HANDOFF.md` under `## Implementation Agent`.
 - Include changed files and rationale in that section.
 
 If any non-negotiable gate fails, do not hand off.

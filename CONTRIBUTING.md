@@ -9,6 +9,7 @@ For each MR:
 3. Ensure `npm run build` passes in `agent_ts`.
 4. Ensure GitHub Actions `PR Validation / Validate agent_ts` is green before merge.
 5. Ensure GitHub Actions `PR Validation / Validate MR handoff format` is green before merge.
+6. Update `docs/MR_HANDOFF.md` using `docs/MR_HANDOFF_TEMPLATE.md`.
 
 Repository admins should set branch protection on `main` to require the
 `PR Validation / Validate agent_ts` and

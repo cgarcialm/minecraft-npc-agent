@@ -58,10 +58,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Validate required PR description headings
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required handoff file headings
         run: |
+          handoff_file="docs/MR_HANDOFF.md"
+          if [ ! -f "$handoff_file" ]; then
+            echo "Missing required file: $handoff_file"
+            echo "Copy docs/MR_HANDOFF_TEMPLATE.md to docs/MR_HANDOFF.md and fill it."
+            exit 1
+          fi
+
           missing=0
           for heading in \
             "## Implementation Agent" \
@@ -69,8 +77,8 @@ jobs:
             "## Review Agent" \
             "## Acceptance Gate Mapping"
           do
-            if ! printf "%s\n" "$PR_BODY" | grep -Fqx "$heading"; then
-              echo "Missing required heading in PR description: $heading"
+            if ! grep -Fqx "$heading" "$handoff_file"; then
+              echo "Missing required heading in $handoff_file: $heading"
               missing=1
             fi
           done

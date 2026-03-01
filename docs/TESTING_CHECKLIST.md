@@ -71,7 +71,7 @@ npm test
 Pass criteria:
 - Test suite passes.
 
-If lint/test scripts are not configured yet, note the temporary exception in the PR description.
+If lint/test scripts are not configured yet, note the temporary exception in `docs/MR_HANDOFF.md`.
 Exception end-state/timeline is defined in `docs/PROJECT_PLAN.md`.
 
 ## Validation Packs (Choose by Change Type)

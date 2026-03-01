@@ -24,6 +24,7 @@ This file is intentionally static and should not require per-MR updates.
    - `## Testing Agent`
    - `## Review Agent`
    - `## Acceptance Gate Mapping`
+6. Record role outputs in `docs/MR_HANDOFF.md` (use `docs/MR_HANDOFF_TEMPLATE.md`).
 
 ## Mandatory Role Simulation
 If only one agent instance is available, execute all three roles sequentially and

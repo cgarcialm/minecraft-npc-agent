@@ -1,6 +1,6 @@
-# MR Handoff Template
+# MR Handoff
 
-Copy this into `docs/MR_HANDOFF.md` in your branch and fill every section.
+Fill this file for the active checkpoint MR.
 
 ## Implementation Agent
 1. Scope implemented:

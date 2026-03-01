@@ -49,7 +49,7 @@ Identify and block defects that can cause:
 1. Behavior changes include matching tests in the same branch.
 2. Tests validate meaningful behavior (not only happy path).
 3. Required checks from `docs/TESTING_CHECKLIST.md` are present.
-4. CI status and key validation evidence are documented in MR notes.
+4. CI status and key validation evidence are documented in `docs/MR_HANDOFF.md`.
 5. Review output is documented under `## Review Agent`.
 6. If there are no blocking issues, the review explicitly states `No blocking findings`.
 
