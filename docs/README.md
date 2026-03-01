@@ -5,3 +5,4 @@
 2. `IMPLEMENTATION_CHECKLIST.md`: implementation-agent scope, gates, and handoff requirements.
 3. `TESTING_CHECKLIST.md`: pre-commit and pre-merge validation checklist.
 4. `REVIEW_CHECKLIST.md`: review-agent checklist, severity model, and merge-blocking criteria.
+5. `MR_HANDOFF_TEMPLATE.md`: required MR description structure for role-based handoff notes.

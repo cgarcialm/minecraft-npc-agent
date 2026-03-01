@@ -50,6 +50,8 @@ Identify and block defects that can cause:
 2. Tests validate meaningful behavior (not only happy path).
 3. Required checks from `docs/TESTING_CHECKLIST.md` are present.
 4. CI status and key validation evidence are documented in MR notes.
+5. Review output is documented under `## Review Agent`.
+6. If there are no blocking issues, the review explicitly states `No blocking findings`.
 
 If any standard above fails in a way that risks correctness, safety, or maintainability, request changes and block merge.
 

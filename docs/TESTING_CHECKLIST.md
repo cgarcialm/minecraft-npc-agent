@@ -49,6 +49,11 @@ Pass criteria:
 - Any behavioral code change includes matching unit tests in the same branch.
 - If no test changes are included, PR must explain why behavior is unchanged.
 
+6. Role handoff format:
+Pass criteria:
+- Testing evidence is documented under `## Testing Agent`.
+- Exact commands and pass/fail outcomes are listed.
+
 ## Conditional Gates
 1. Lint gate (when configured):
 ```bash

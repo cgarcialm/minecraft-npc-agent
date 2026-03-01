@@ -1,0 +1,81 @@
+name: PR Validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-agent-ts:
+    name: Validate agent_ts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent_ts
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: agent_ts/package*.json
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Detect optional scripts
+        id: scripts
+        run: |
+          echo "has_lint=$(node -p "Boolean(require('./package.json').scripts?.lint)")" >> "$GITHUB_OUTPUT"
+          echo "has_test=$(node -p "Boolean(require('./package.json').scripts?.test)")" >> "$GITHUB_OUTPUT"
+
+      - name: Build and type check
+        run: npm run build
+
+      - name: Lint
+        if: steps.scripts.outputs.has_lint == 'true'
+        run: npm run lint
+
+      - name: Test
+        if: steps.scripts.outputs.has_test == 'true'
+        run: npm test
+
+  validate-mr-handoff:
+    name: Validate MR handoff format
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate required PR description headings
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          missing=0
+          for heading in \
+            "## Implementation Agent" \
+            "## Testing Agent" \
+            "## Review Agent" \
+            "## Acceptance Gate Mapping"
+          do
+            if ! printf "%s\n" "$PR_BODY" | grep -Fqx "$heading"; then
+              echo "Missing required heading in PR description: $heading"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Use docs/MR_HANDOFF_TEMPLATE.md for the required MR structure."
+            exit 1
+          fi
