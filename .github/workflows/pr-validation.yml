@@ -1,4 +1,4 @@
-name: PR Validation
+name: pr-validation
 
 on:
   pull_request:
@@ -10,24 +10,24 @@ concurrency:
 
 jobs:
   validate-agent-ts:
-    name: Validate agent_ts
+    name: agent-checks
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: agent_ts
 
     steps:
-      - name: Checkout
+      - name: checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: setup-node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: agent_ts/package*.json
 
-      - name: Install dependencies
+      - name: install-deps
         run: |
           if [ -f package-lock.json ]; then
             npm ci
@@ -35,33 +35,33 @@ jobs:
             npm install
           fi
 
-      - name: Detect optional scripts
+      - name: detect-scripts
         id: scripts
         run: |
           echo "has_lint=$(node -p "Boolean(require('./package.json').scripts?.lint)")" >> "$GITHUB_OUTPUT"
           echo "has_test=$(node -p "Boolean(require('./package.json').scripts?.test)")" >> "$GITHUB_OUTPUT"
 
-      - name: Build and type check
+      - name: build
         run: npm run build
 
-      - name: Lint
+      - name: lint
         if: steps.scripts.outputs.has_lint == 'true'
         run: npm run lint
 
-      - name: Test
+      - name: test
         if: steps.scripts.outputs.has_test == 'true'
         run: npm test
 
   validate-mr-handoff:
-    name: Validate MR handoff format
+    name: handoff-checks
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: checkout
         uses: actions/checkout@v4
 
-      - name: Validate required handoff file headings
+      - name: check-headings
         run: |
           handoff_file="docs/MR_HANDOFF.md"
           if [ ! -f "$handoff_file" ]; then
