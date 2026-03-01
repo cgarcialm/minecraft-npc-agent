@@ -1,80 +1,75 @@
-# Beta - Amazon Bedrock Minecraft Agent (TypeScript)
+# Minecraft NPC Agent (Local-First)
 
-> Note: This project is in beta, so expect glitches to be found and improvements to be made! We have released this code now in response to the huge amount of interest in this project.  Thank you and please continue to send your feedback and suggestions.
+A Minecraft Java NPC agent built with Mineflayer, evolving from rule-based command handling to local LLM-driven behavior.
 
-This project is a Minecraft bot built using the Agents for Amazon Bedrock framework, written in TypeScript. It demonstrates how to create an agent that can interact with the Minecraft world using the Return Control Agents.
+This fork started from a Bedrock-oriented upstream project and is being refactored to a local-first runtime.
 
-![Rocky the Amazon Bedrock Minecraft Agent](images/rocky.png)
+## Upstream
+Original repository:
+- https://github.com/build-on-aws/amazon-bedrock-minecraft-agent
 
-## Introduction
+## Target Direction (In Progress)
+This fork is moving to a local-first architecture:
+1. Baseline usage should not require AWS credentials.
+2. Rule-based provider is implemented first for stable action execution.
+3. Ollama becomes the primary natural-language provider.
+4. Rule provider remains as fallback.
+5. Bedrock code path is removed from final runtime.
 
-The Amazon Bedrock Minecraft Agent is a TypeScript implementation of an agent that can be used to automate tasks and interactions within the Minecraft world. It leverages the [Mineflayer](https://github.com/PrismarineJS/mineflayer) library, which provides a high-level interface for interacting with the Minecraft game engine.
+## Project Plan
+Planning and checkpoints are documented here:
+1. `docs/README.md`
 
-## As Seen On 
-- AWS Developers Live Stream: https://www.youtube.com/live/sn5cUf022ek?si=aukSxnQRbliT5jjS&t=8656
+## Core Runtime (Planned)
+1. Provider abstraction (`RuleProvider`, `OllamaProvider`).
+2. Shared action executor for all provider outputs.
+3. Safety layer (allowlist, action limits, cooldown, timeout, arg validation).
+4. `action_build` disabled until redesigned for local mode.
 
-## Installation and Usage
-
-To install this solution in it's current (beta) state, it's recommended that you have some knowledge of:  
-- Amazon Bedrock
-- AWS CloudFormation
-- AWS Cloud Development Kit (CDK) - If hosting in ECS.
-
-Additionally you will require a Minecraft client, with version `1.20.1`, and an account to play.
-
-Steps to deploy: 
-- Working in us-west-2 (Oregon)
-- From the Amazon Bedrock console page, enable access to Claude 3 Haiku, and Sonnet models.
-- Using AWS CloudFormation, deploy the template `agent_cfn/amazon-bedrock-minecraft-agent-roc.yaml` to a stack.
-- Note the outputs from the deployed stack `agentId` and `agentAliasId`.
-
-### Using the agent is local dev and test:
-
-Usage:
-- Launch Minecraft v1.20.1, start a single player (local) game and in the game, use "Open to LAN" and set the port to `25565`.
-- From the `agent_ts/` folder, open a terminal, install the node packages as required `npm install`.
-- Update the config, either by setting environment variables, OR editing `agent_ts/.env` OR by editing `agent_ts/config.ts`.  Set the `agentId` and the `agentAliasId` to values output from the agent CloudFormation stack.
-- Run the TypeScript code in `agent_ts/` with `npm run start:dev`
-- Interact with Rocky in game by using the in game chat, pressing `t`.  Try "hello", "come to me" and "dig a 2 by 2 hole".  Watch the debug output in the terminal you are running from. 
-
-### Installation and Usage - Cloud Hosted (ECS)
-
-This repo also contains a CDK stack that will deploy the agent client code to a task (container) within ECS. **You should only consider using this if you are familiar with the technology and running a Minecraft server.** Review the code carefully and at a minimum note:
-- Security Risks: The Minecraft server deployed is publicly accessible, and since the server does not verify usernames, anyone can join with any username, including ones that are already taken by other players. This can lead to impersonation and griefing.
-- Server Control: Currently the RCON port is not available on the server, so there is no admin access.  This will be addressed in the future. 
-
-Steps to deploy: 
-- From the `cdk/` folder, open a terminal, install the node packages as required `npm install`.
-- Deploy the CDK project from `cdk/` using context variables `agentId` and `agentAliasId`, e.g.:
-
-```
-> cdk deploy --context agentAliasID=ABC123 --context agentID=XYZ321
+## Local Setup
+1. Install dependencies:
+```bash
+cd agent_ts
+npm install
 ```
 
-Usage:
-- Launch Minecraft v1.20.1.
-- Select `Multiplayer` and select `Add Server`.
-- Enter the address of the Network LoadBalancer that was deployed by CDK, using port `:25565`. 
-- Interact with Rocky in game by using the in game chat, pressing `t`.  Try "hello", "come to me" and "dig a 2 by 2 hole".  Watch the debug output in the terminal you are running from. 
+2. Configure environment (`agent_ts/.env`).
+Current state: env schema is still being finalized during refactor.
+Use this as a target example (planned keys, subject to change until MR1/MR2):
+```env
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b
+ENABLE_RULE_FALLBACK=true
+ENABLE_SAFETY=true
+MAX_ACTIONS_PER_MESSAGE=3
+DISABLE_ACTION_BUILD=true
+ACTION_TIMEOUT_MS=20000
+ACTION_COOLDOWN_MS=1500
+MC_HOST=127.0.0.1
+MC_PORT=25565
+MC_VERSION=1.20.1
+MC_USERNAME=Rocky
+MC_AUTH=offline
+```
 
-# A Bit about the Technology 
+3. Build and run:
+```bash
+cd agent_ts
+npm run build
+npm run start:dev
+```
 
-## Return Control
-"Rather than sending the information that your agent has elicited from the user to a Lambda function for fulfillment, you can instead choose to return control to the agent developer by sending the information in the InvokeAgent response."
+## Minecraft Runtime Notes
+1. Use Minecraft Java `1.20.1`.
+2. Open your single-player world to LAN.
+3. Ensure LAN port matches `MC_PORT`.
+4. Send commands in chat to the bot.
 
+## Testing and Commit Gates
+Before commit or MR, follow:
+1. `docs/README.md`
 
-## Mineflayer Library
-
-The Mineflayer library is a powerful tool for building Minecraft agents and automating tasks within the game world. It provides a set of classes and functions that abstract away low-level details, making it easier to develop complex behaviors and interactions.
-
-## Disclaimers
-
-This project is a proof of concept and is not intended for production use. It is provided as an example of how to build return control agents using the Agents for Amazon Bedrock framework and the Mineflayer library.
-
-## Security
-
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
-
-## License
-
-This library is licensed under the MIT-0 License. See the LICENSE file.
+## Status
+This repository is in active refactor toward a local-first agent runtime.
+Legacy Bedrock-oriented code is still present during the transition and will be removed in planned checkpoints.
