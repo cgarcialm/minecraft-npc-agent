@@ -4,6 +4,18 @@ export class RuleProvider implements AgentProvider {
   public readonly name = 'rule';
 
   public async handleMessage(input: AgentProviderInput): Promise<AgentDecision> {
+    const knownDecision = this.tryHandleMessage(input);
+    if (knownDecision) {
+      return knownDecision;
+    }
+
+    return {
+      reply: 'I can currently handle: hello, come to me, jump, dig <depth>x<width>, find <entity>, attack/hit <entity>, stop.',
+      actions: [],
+    };
+  }
+
+  public tryHandleMessage(input: AgentProviderInput): AgentDecision | null {
     const text = input.text.trim();
     const lower = text.toLowerCase();
 
@@ -23,6 +35,18 @@ export class RuleProvider implements AgentProvider {
     if (this.isJump(lower)) {
       return {
         actions: [{ name: 'action_jump', args: {} }],
+      };
+    }
+
+    if (this.isWeatherQuery(lower)) {
+      return {
+        actions: [{ name: 'action_is_raining', args: {} }],
+      };
+    }
+
+    if (this.isTimeQuery(lower)) {
+      return {
+        actions: [{ name: 'action_get_time', args: {} }],
       };
     }
 
@@ -75,22 +99,24 @@ export class RuleProvider implements AgentProvider {
       };
     }
 
-    const attackMatch = lower.match(/^attack\s+([a-z0-9_\- ]+)$/);
+    const attackMatch = lower.match(/^(?:attack|hit)\s+([a-z0-9_\- ]+)$/);
     if (attackMatch) {
+      const entityName = attackMatch[1].trim();
       return {
         actions: [
           {
+            name: 'action_find_entity',
+            args: { entity_name: entityName },
+          },
+          {
             name: 'action_attack_nearest_entity',
-            args: { entity_name: attackMatch[1].trim() },
+            args: { entity_name: entityName },
           },
         ],
       };
     }
 
-    return {
-      reply: 'I can currently handle: hello, come to me, jump, dig <depth>x<width>, find <entity>, attack <entity>, stop.',
-      actions: [],
-    };
+    return null;
   }
 
   private isHello(text: string): boolean {
@@ -107,5 +133,13 @@ export class RuleProvider implements AgentProvider {
 
   private isStop(text: string): boolean {
     return text === 'stop';
+  }
+
+  private isWeatherQuery(text: string): boolean {
+    return text.includes('rain') || text.includes('raining');
+  }
+
+  private isTimeQuery(text: string): boolean {
+    return text.includes('what time') || text.includes('time is it');
   }
 }

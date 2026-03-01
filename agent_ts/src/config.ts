@@ -12,8 +12,15 @@ export interface Config {
   mcVersion: string;
 
   aiProvider: string;
+  enableFastPath: boolean;
   ollamaBaseUrl: string;
   ollamaModel: string;
+  ollamaKeepAlive: string;
+  ollamaTemperature: number;
+  ollamaNumPredict: number;
+  providerTimeoutMs: number;
+  enableResponseSynthesis: boolean;
+  responseSynthesisTimeoutMs: number;
   enableRuleFallback: boolean;
   enableSafety: boolean;
   maxActionsPerMessage: number;
@@ -43,6 +50,15 @@ function parseNumber(value: string | undefined, defaultValue: number): number {
   return Number.isNaN(parsed) ? defaultValue : parsed;
 }
 
+function parseFloatNumber(value: string | undefined, defaultValue: number): number {
+  if (!value) {
+    return defaultValue;
+  }
+
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : defaultValue;
+}
+
 export const loadConfig = async (): Promise<Config> => {
   return {
     mcHost: process.env.MC_HOST || '127.0.0.1',
@@ -52,8 +68,15 @@ export const loadConfig = async (): Promise<Config> => {
     mcVersion: process.env.MC_VERSION || '1.20.1',
 
     aiProvider: process.env.AI_PROVIDER || 'ollama',
+    enableFastPath: parseBoolean(process.env.ENABLE_FAST_PATH, true),
     ollamaBaseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
     ollamaModel: process.env.OLLAMA_MODEL || 'llama3.1:8b',
+    ollamaKeepAlive: process.env.OLLAMA_KEEP_ALIVE || '30m',
+    ollamaTemperature: parseFloatNumber(process.env.OLLAMA_TEMPERATURE, 0),
+    ollamaNumPredict: parseNumber(process.env.OLLAMA_NUM_PREDICT, 128),
+    providerTimeoutMs: parseNumber(process.env.PROVIDER_TIMEOUT_MS, 5000),
+    enableResponseSynthesis: parseBoolean(process.env.ENABLE_RESPONSE_SYNTHESIS, true),
+    responseSynthesisTimeoutMs: parseNumber(process.env.RESPONSE_SYNTHESIS_TIMEOUT_MS, 2500),
     enableRuleFallback: parseBoolean(process.env.ENABLE_RULE_FALLBACK, true),
     enableSafety: parseBoolean(process.env.ENABLE_SAFETY, true),
     maxActionsPerMessage: parseNumber(process.env.MAX_ACTIONS_PER_MESSAGE, 3),

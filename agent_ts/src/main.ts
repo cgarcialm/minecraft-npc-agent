@@ -2,6 +2,7 @@ import { MyFunctionHandler } from './action-handler';
 import { loadConfig } from './config';
 import { ActionExecutor } from './execution/action-executor';
 import { createProviderRouter } from './providers/provider-factory';
+import { OllamaResponseSynthesizer } from './providers/ollama-response-synthesizer';
 
 import * as dotenv from 'dotenv';
 dotenv.config();
@@ -17,6 +18,8 @@ const collectblock = require('mineflayer-collectblock').plugin;
 let mcBot: any;
 let providerRouter: ReturnType<typeof createProviderRouter>;
 let executor: ActionExecutor;
+let responseSynthesizer: OllamaResponseSynthesizer | undefined;
+let enableResponseSynthesis = false;
 let messageQueue: Promise<void> = Promise.resolve();
 
 function logEvent(event: string, payload: Record<string, unknown>): void {
@@ -41,6 +44,15 @@ async function startBot() {
 
     const functionHandler = new MyFunctionHandler(mcBot, mcData);
     providerRouter = createProviderRouter(config);
+    await providerRouter.warmup();
+    enableResponseSynthesis = config.enableResponseSynthesis && config.aiProvider === 'ollama';
+    responseSynthesizer = enableResponseSynthesis
+      ? new OllamaResponseSynthesizer(
+        config.ollamaBaseUrl,
+        config.ollamaModel,
+        config.responseSynthesisTimeoutMs,
+      )
+      : undefined;
     executor = new ActionExecutor(functionHandler, config, logEvent, async () => {
       mcBot.clearControlStates();
       if (mcBot.pathfinder?.stop) {
@@ -156,18 +168,29 @@ async function processChatCommand(username: string, message: string) {
     }
 
     if (!hasChatResponse) {
-      if (actionResults.length === 0) {
-        mcBot.chat('I heard you. Tell me what action to take.');
-      } else {
-        const successfulActions = actionResults
-          .filter((result) => result.ok)
-          .map((result) => result.action.name);
-
-        if (successfulActions.length > 0) {
-          mcBot.chat(`Done: ${successfulActions.join(', ')}.`);
-        } else {
-          mcBot.chat('I could not complete that request.');
+      if (responseSynthesizer && enableResponseSynthesis) {
+        try {
+          const synthesized = await responseSynthesizer.synthesize({
+            user: username,
+            message,
+            providerReply: selection.decision.reply,
+            actions: selection.decision.actions,
+            actionResults,
+          });
+          if (synthesized) {
+            mcBot.chat(synthesized);
+            hasChatResponse = true;
+          }
+        } catch (synthesisError) {
+          const synthesisMessage = synthesisError instanceof Error ? synthesisError.message : 'response synthesis failed';
+          logEvent('fallback_reason', {
+            reason: synthesisMessage,
+          });
         }
+      }
+
+      if (!hasChatResponse) {
+        mcBot.chat(buildDeterministicReply(actionResults));
       }
     }
   } catch (error) {
@@ -175,6 +198,47 @@ async function processChatCommand(username: string, message: string) {
     logEvent('action_error', { error: messageText });
     mcBot.chat(`I could not process that request: ${messageText}`);
   }
+}
+
+function buildDeterministicReply(actionResults: Array<{ ok: boolean; action: { name: string }; response?: unknown }>): string {
+  if (actionResults.length === 0) {
+    return 'I heard you. Tell me what action to take.';
+  }
+
+  for (const result of actionResults) {
+    if (!result.ok || !result.response || typeof result.response !== 'object') {
+      continue;
+    }
+
+    const response = result.response as Record<string, unknown>;
+    if (typeof response.isRaining === 'boolean') {
+      return response.isRaining ? 'Yes, it is raining right now.' : 'No, it is not raining right now.';
+    }
+
+    if (typeof response.found === 'string') {
+      return `I found ${response.found}.`;
+    }
+
+    if (response.location && typeof response.location === 'object') {
+      const location = response.location as Record<string, unknown>;
+      const x = location.x;
+      const y = location.y;
+      const z = location.z;
+      if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') {
+        return `Location is x ${x.toFixed(1)}, y ${y.toFixed(1)}, z ${z.toFixed(1)}.`;
+      }
+    }
+  }
+
+  const successfulActions = actionResults
+    .filter((result) => result.ok)
+    .map((result) => result.action.name);
+
+  if (successfulActions.length > 0) {
+    return `Done: ${successfulActions.join(', ')}.`;
+  }
+
+  return 'I could not complete that request.';
 }
 
 function getPlayerLocation(username: string): { x: number; y: number; z: number } | undefined {

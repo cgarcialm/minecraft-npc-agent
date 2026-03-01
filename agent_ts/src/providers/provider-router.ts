@@ -7,6 +7,10 @@ export class ProviderRouter {
     private readonly enableFallback: boolean,
   ) {}
 
+  public async warmup(): Promise<void> {
+    await this.primary.warmup?.();
+  }
+
   public async handleMessage(input: AgentProviderInput): Promise<ProviderSelectionResult> {
     try {
       const decision = this.assertDecision(await this.primary.handleMessage(input));

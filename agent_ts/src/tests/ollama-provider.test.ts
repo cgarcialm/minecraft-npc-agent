@@ -10,6 +10,13 @@ const providerInput: AgentProviderInput = {
   memory: {},
 };
 
+const ollamaOptions = {
+  keepAlive: '30m',
+  temperature: 0,
+  numPredict: 64,
+  timeoutMs: 2000,
+};
+
 test('parseDecisionContent accepts strict JSON with markdown fence and sanitizes actions', () => {
   const decision = parseDecisionContent(`\`\`\`json
 {"reply":"ok","actions":[{"name":"action_jump","args":{}},{"name":"action_stop","args":{}}]}
@@ -44,6 +51,7 @@ test('ollama provider maps valid response content to AgentDecision', async () =>
   const provider = new OllamaProvider(
     'http://localhost:11434',
     'llama3.1:8b',
+    ollamaOptions,
     async () => {
       return {
         ok: true,
@@ -55,6 +63,7 @@ test('ollama provider maps valid response content to AgentDecision', async () =>
         }),
       } as Response;
     },
+    () => {},
   );
 
   const decision = await provider.handleMessage(providerInput);
@@ -67,6 +76,7 @@ test('ollama provider retries once when first decision is invalid and accepts re
   const provider = new OllamaProvider(
     'http://localhost:11434',
     'llama3.1:8b',
+    ollamaOptions,
     async () => {
       callCount += 1;
       return {
@@ -81,6 +91,7 @@ test('ollama provider retries once when first decision is invalid and accepts re
         }),
       } as Response;
     },
+    () => {},
   );
 
   const decision = await provider.handleMessage(providerInput);
@@ -92,6 +103,7 @@ test('ollama provider throws when decision remains invalid after repair retry', 
   const provider = new OllamaProvider(
     'http://localhost:11434',
     'llama3.1:8b',
+    ollamaOptions,
     async () => {
       return {
         ok: true,
@@ -103,6 +115,7 @@ test('ollama provider throws when decision remains invalid after repair retry', 
         }),
       } as Response;
     },
+    () => {},
   );
 
   await assert.rejects(async () => {

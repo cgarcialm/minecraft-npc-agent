@@ -43,7 +43,7 @@ test('parses dig variants', async () => {
   }
 });
 
-test('parses find and attack', async () => {
+test('parses find and attack/hit with plan steps', async () => {
   const findDecision = await provider.handleMessage({
     ...defaultInput,
     text: 'find zombie',
@@ -63,8 +63,28 @@ test('parses find and attack', async () => {
 
   assert.deepEqual(attackDecision.actions, [
     {
+      name: 'action_find_entity',
+      args: { entity_name: 'zombie' },
+    },
+    {
       name: 'action_attack_nearest_entity',
       args: { entity_name: 'zombie' },
+    },
+  ]);
+
+  const hitDecision = await provider.handleMessage({
+    ...defaultInput,
+    text: 'hit pig',
+  });
+
+  assert.deepEqual(hitDecision.actions, [
+    {
+      name: 'action_find_entity',
+      args: { entity_name: 'pig' },
+    },
+    {
+      name: 'action_attack_nearest_entity',
+      args: { entity_name: 'pig' },
     },
   ]);
 });
@@ -76,6 +96,22 @@ test('parses stop', async () => {
   });
 
   assert.deepEqual(decision.actions, [{ name: 'action_stop', args: {} }]);
+});
+
+test('parses weather and time queries', async () => {
+  const weatherDecision = await provider.handleMessage({
+    ...defaultInput,
+    text: 'is it raining?',
+  });
+
+  assert.deepEqual(weatherDecision.actions, [{ name: 'action_is_raining', args: {} }]);
+
+  const timeDecision = await provider.handleMessage({
+    ...defaultInput,
+    text: 'what time is it',
+  });
+
+  assert.deepEqual(timeDecision.actions, [{ name: 'action_get_time', args: {} }]);
 });
 
 test('parses come to me when player location exists', async () => {
