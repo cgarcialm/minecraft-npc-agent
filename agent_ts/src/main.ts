@@ -17,6 +17,7 @@ const collectblock = require('mineflayer-collectblock').plugin;
 let mcBot: any;
 let providerRouter: ReturnType<typeof createProviderRouter>;
 let executor: ActionExecutor;
+let messageQueue: Promise<void> = Promise.resolve();
 
 function logEvent(event: string, payload: Record<string, unknown>): void {
   console.log(JSON.stringify({ event, ...payload }));
@@ -40,7 +41,15 @@ async function startBot() {
 
     const functionHandler = new MyFunctionHandler(mcBot, mcData);
     providerRouter = createProviderRouter(config);
-    executor = new ActionExecutor(functionHandler, config, logEvent);
+    executor = new ActionExecutor(functionHandler, config, logEvent, async () => {
+      mcBot.clearControlStates();
+      if (mcBot.pathfinder?.stop) {
+        mcBot.pathfinder.stop();
+      }
+      if (mcBot.creative?.stopFlying) {
+        mcBot.creative.stopFlying();
+      }
+    });
 
     mcBot.once('spawn', initializeBot);
     mcBot.on('chat', handleChatCommands);
@@ -65,6 +74,17 @@ function initializeBot() {
 }
 
 async function handleChatCommands(username: string, message: string) {
+  messageQueue = messageQueue
+    .then(async () => {
+      await processChatCommand(username, message);
+    })
+    .catch((error) => {
+      const messageText = error instanceof Error ? error.message : 'Queued message handling failed';
+      logEvent('action_error', { error: messageText });
+    });
+}
+
+async function processChatCommand(username: string, message: string) {
   if (username === mcBot.username || message.includes('Teleport')) {
     return;
   }

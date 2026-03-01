@@ -9,6 +9,7 @@ type EventName =
   | 'action_error';
 
 type EventLogger = (event: EventName, payload: Record<string, unknown>) => void;
+type TimeoutHandler = (context: { user: string; action: AgentAction }) => Promise<void> | void;
 
 export interface ActionExecutionResult {
   action: AgentAction;
@@ -24,6 +25,7 @@ export class ActionExecutor {
     private readonly functionHandler: FunctionHandler,
     private readonly config: Config,
     private readonly logEvent: EventLogger,
+    private readonly onTimeout?: TimeoutHandler,
   ) {}
 
   public async execute(user: string, actions: AgentAction[]): Promise<ActionExecutionResult[]> {
@@ -78,6 +80,10 @@ export class ActionExecutor {
         });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown action execution error';
+
+        if (errorMessage.toLowerCase().includes('timed out') && this.onTimeout) {
+          await this.onTimeout({ user, action });
+        }
 
         this.logEvent('action_error', {
           user,

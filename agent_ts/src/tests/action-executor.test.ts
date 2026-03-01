@@ -78,15 +78,30 @@ test('enforces cooldown per user/action', async () => {
 });
 
 test('enforces action timeout', async () => {
+  let timeoutHandlerCalled = false;
   const handler = new FakeFunctionHandler(async () => {
     return await new Promise<[any, any]>(() => {
       // never resolves
     });
   });
-  const executor = createExecutor(handler, { maxActionsPerMessage: 3, actionTimeoutMs: 10 });
+  const executor = new ActionExecutor(
+    handler,
+    {
+      ...baseConfig,
+      maxActionsPerMessage: 3,
+      actionTimeoutMs: 10,
+    },
+    () => {
+      // no-op logger for tests
+    },
+    async () => {
+      timeoutHandlerCalled = true;
+    },
+  );
 
   const results = await executor.execute('Alex', [{ name: 'action_jump', args: {} }]);
 
   assert.equal(results[0].ok, false);
   assert.match(results[0].error ?? '', /timed out/i);
+  assert.equal(timeoutHandlerCalled, true);
 });
