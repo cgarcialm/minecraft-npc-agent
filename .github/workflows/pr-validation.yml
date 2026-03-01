@@ -1,0 +1,89 @@
+name: pr-validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-agent-ts:
+    name: agent-checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent_ts
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: agent_ts/package*.json
+
+      - name: install-deps
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: detect-scripts
+        id: scripts
+        run: |
+          echo "has_lint=$(node -p "Boolean(require('./package.json').scripts?.lint)")" >> "$GITHUB_OUTPUT"
+          echo "has_test=$(node -p "Boolean(require('./package.json').scripts?.test)")" >> "$GITHUB_OUTPUT"
+
+      - name: build
+        run: npm run build
+
+      - name: lint
+        if: steps.scripts.outputs.has_lint == 'true'
+        run: npm run lint
+
+      - name: test
+        if: steps.scripts.outputs.has_test == 'true'
+        run: npm test
+
+  validate-mr-handoff:
+    name: handoff-checks
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: check-headings
+        run: |
+          handoff_file="docs/MR_HANDOFF.md"
+          if [ ! -f "$handoff_file" ]; then
+            echo "Missing required file: $handoff_file"
+            echo "Copy docs/MR_HANDOFF_TEMPLATE.md to docs/MR_HANDOFF.md and fill it."
+            exit 1
+          fi
+
+          missing=0
+          for heading in \
+            "## Implementation Agent" \
+            "## Testing Agent" \
+            "## Review Agent" \
+            "## Acceptance Gate Mapping"
+          do
+            if ! grep -Fqx "$heading" "$handoff_file"; then
+              echo "Missing required heading in $handoff_file: $heading"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Use docs/MR_HANDOFF_TEMPLATE.md for the required MR structure."
+            exit 1
+          fi

@@ -19,6 +19,17 @@ This file is intentionally static and should not require per-MR updates.
 2. Do not jump to later checkpoints unless explicitly requested.
 3. Keep changes scoped, reviewable, and aligned to acceptance criteria.
 4. Use implementation/testing/review checklists as merge gates.
+5. Document all three MR roles for each checkpoint:
+   - `## Implementation Agent`
+   - `## Testing Agent`
+   - `## Review Agent`
+   - `## Acceptance Gate Mapping`
+6. Record role outputs in `docs/MR_HANDOFF.md` (use `docs/MR_HANDOFF_TEMPLATE.md`).
+
+## Mandatory Role Simulation
+If only one agent instance is available, execute all three roles sequentially and
+document each role using the required headings.
+If any required heading is missing, the checkpoint is incomplete.
 
 ## Mandatory Pre-Coding Confirmation
 Before coding, explicitly confirm:
