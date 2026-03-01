@@ -12,6 +12,8 @@ export interface Config {
   mcVersion: string;
 
   aiProvider: string;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
   enableRuleFallback: boolean;
   enableSafety: boolean;
   maxActionsPerMessage: number;
@@ -49,7 +51,9 @@ export const loadConfig = async (): Promise<Config> => {
     mcPort: parseNumber(process.env.MC_PORT, 25565),
     mcVersion: process.env.MC_VERSION || '1.20.1',
 
-    aiProvider: process.env.AI_PROVIDER || 'rule',
+    aiProvider: process.env.AI_PROVIDER || 'ollama',
+    ollamaBaseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+    ollamaModel: process.env.OLLAMA_MODEL || 'llama3.1:8b',
     enableRuleFallback: parseBoolean(process.env.ENABLE_RULE_FALLBACK, true),
     enableSafety: parseBoolean(process.env.ENABLE_SAFETY, true),
     maxActionsPerMessage: parseNumber(process.env.MAX_ACTIONS_PER_MESSAGE, 3),

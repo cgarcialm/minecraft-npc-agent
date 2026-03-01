@@ -11,6 +11,8 @@ const baseConfig: Config = {
   mcPort: 25565,
   mcVersion: '1.20.1',
   aiProvider: 'rule',
+  ollamaBaseUrl: 'http://localhost:11434',
+  ollamaModel: 'llama3.1:8b',
   enableRuleFallback: true,
   enableSafety: true,
   maxActionsPerMessage: 1,
