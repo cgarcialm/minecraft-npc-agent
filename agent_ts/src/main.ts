@@ -116,6 +116,7 @@ async function processChatCommand(username: string, message: string) {
 
   try {
     const selection = await providerRouter.handleMessage(providerInput);
+    let hasChatResponse = false;
 
     logEvent('provider_selected', {
       provider: selection.providerName,
@@ -131,8 +132,9 @@ async function processChatCommand(username: string, message: string) {
       decision: selection.decision,
     });
 
-    if (selection.decision.reply) {
+    if (selection.decision.reply && selection.decision.reply.trim().length > 0) {
       mcBot.chat(selection.decision.reply);
+      hasChatResponse = true;
     }
 
     const actionResults = await executor.execute(username, selection.decision.actions);
@@ -140,6 +142,7 @@ async function processChatCommand(username: string, message: string) {
     for (const result of actionResults) {
       if (!result.ok && result.error) {
         mcBot.chat(`Could not run ${result.action.name}: ${result.error}`);
+        hasChatResponse = true;
         continue;
       }
 
@@ -147,6 +150,23 @@ async function processChatCommand(username: string, message: string) {
         const responseMessage = (result.response as Record<string, unknown>).message;
         if (typeof responseMessage === 'string') {
           mcBot.chat(responseMessage);
+          hasChatResponse = true;
+        }
+      }
+    }
+
+    if (!hasChatResponse) {
+      if (actionResults.length === 0) {
+        mcBot.chat('I heard you. Tell me what action to take.');
+      } else {
+        const successfulActions = actionResults
+          .filter((result) => result.ok)
+          .map((result) => result.action.name);
+
+        if (successfulActions.length > 0) {
+          mcBot.chat(`Done: ${successfulActions.join(', ')}.`);
+        } else {
+          mcBot.chat('I could not complete that request.');
         }
       }
     }

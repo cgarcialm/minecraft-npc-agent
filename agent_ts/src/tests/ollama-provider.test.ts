@@ -12,7 +12,7 @@ const providerInput: AgentProviderInput = {
 
 test('parseDecisionContent accepts strict JSON with markdown fence and sanitizes actions', () => {
   const decision = parseDecisionContent(`\`\`\`json
-{"reply":"ok","actions":[{"name":"action_jump","args":{}},{"name":42},{"name":"action_stop"}]}
+{"reply":"ok","actions":[{"name":"action_jump","args":{}},{"name":"action_stop","args":{}}]}
 \`\`\``);
 
   assert.equal(decision.reply, 'ok');
@@ -22,51 +22,22 @@ test('parseDecisionContent accepts strict JSON with markdown fence and sanitizes
   ]);
 });
 
-test('parseDecisionContent maps say action to reply and move_to_location alias to canonical action', () => {
-  const decision = parseDecisionContent(
-    '{"actions":[{"name":"say","args":{"text":"hi"}},{"name":"move_to_location","args":{"location":{"x":1,"y":64,"z":2}}}]}',
-  );
-
-  assert.equal(decision.reply, 'hi');
-  assert.deepEqual(decision.actions, [
-    {
-      name: 'action_move_to_location',
-      args: {
-        location_x: 1,
-        location_y: 64,
-        location_z: 2,
-      },
-    },
-  ]);
-});
-
-test('parseDecisionContent remaps action_get_player_location with x/y/z args to move action', () => {
-  const decision = parseDecisionContent(
-    '{"actions":[{"name":"action_get_player_location","args":{"x":1,"y":64,"z":2}}]}',
-  );
-
-  assert.deepEqual(decision.actions, [
-    {
-      name: 'action_move_to_location',
-      args: {
-        location_x: 1,
-        location_y: 64,
-        location_z: 2,
-      },
-    },
-  ]);
-});
-
 test('parseDecisionContent rejects invalid JSON', () => {
   assert.throws(() => {
     parseDecisionContent('not-json');
   }, /not valid JSON/);
 });
 
-test('parseDecisionContent rejects unsupported-only actions with no reply', () => {
+test('parseDecisionContent rejects unknown tool names', () => {
   assert.throws(() => {
     parseDecisionContent('{"actions":[{"name":"dance","args":{}}]}');
-  }, /unsupported actions/);
+  }, /Unknown action: dance/);
+});
+
+test('parseDecisionContent rejects invalid args for known tools', () => {
+  assert.throws(() => {
+    parseDecisionContent('{"actions":[{"name":"action_find_entity","args":{"targetType":"Zombie"}}]}');
+  }, /requires entity_name/);
 });
 
 test('ollama provider maps valid response content to AgentDecision', async () => {
@@ -91,7 +62,33 @@ test('ollama provider maps valid response content to AgentDecision', async () =>
   assert.deepEqual(decision.actions, [{ name: 'action_jump', args: {} }]);
 });
 
-test('ollama provider throws for malformed response content', async () => {
+test('ollama provider retries once when first decision is invalid and accepts repaired decision', async () => {
+  let callCount = 0;
+  const provider = new OllamaProvider(
+    'http://localhost:11434',
+    'llama3.1:8b',
+    async () => {
+      callCount += 1;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: {
+            content: callCount === 1
+              ? '{"actions":[{"name":"say","args":{"text":"hi"}}]}'
+              : '{"actions":[{"name":"action_jump","args":{}}]}',
+          },
+        }),
+      } as Response;
+    },
+  );
+
+  const decision = await provider.handleMessage(providerInput);
+  assert.equal(callCount, 2);
+  assert.deepEqual(decision.actions, [{ name: 'action_jump', args: {} }]);
+});
+
+test('ollama provider throws when decision remains invalid after repair retry', async () => {
   const provider = new OllamaProvider(
     'http://localhost:11434',
     'llama3.1:8b',
@@ -101,7 +98,7 @@ test('ollama provider throws for malformed response content', async () => {
         status: 200,
         json: async () => ({
           message: {
-            content: '{"reply":"missing actions"}',
+            content: '{"actions":[{"name":"say","args":{"text":"hello"}}]}',
           },
         }),
       } as Response;
@@ -110,5 +107,5 @@ test('ollama provider throws for malformed response content', async () => {
 
   await assert.rejects(async () => {
     await provider.handleMessage(providerInput);
-  }, /missing actions array/);
+  }, /invalid after repair/);
 });
