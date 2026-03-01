@@ -60,8 +60,8 @@ export class BedrockBot {
   constructor(functionHandler: MyFunctionHandler, config: Config) {
     this.logger = console;
     this.bedrockAgentRuntimeClient = new BedrockAgentRuntimeClient({ region: 'us-west-2' });
-    this.agentAliasId = config.agentAliasId;
-    this.agentId = config.agentId;
+    this.agentAliasId = config.agentAliasId || '';
+    this.agentId = config.agentId || '';
     this.functionHandler = functionHandler;
     this.sessionId = null;
     this.chatCallback = null;

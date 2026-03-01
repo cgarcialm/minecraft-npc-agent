@@ -19,6 +19,8 @@
   },
   "scripts": {
     "start:dev": "nodemon",
-    "build": "tsc"
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "npm run build --silent && node --test \"dist/tests/**/*.test.js\""
   }
 }
