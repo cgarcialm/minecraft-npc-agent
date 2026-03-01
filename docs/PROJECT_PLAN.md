@@ -197,7 +197,7 @@ Testing is a first-class workstream, not only a final validation step.
    - safety policies (allowlist, limits, cooldown, timeout)
    - decision parsing and fallback behavior
 4. MR2: enforce lint + unit tests in CI as required merge gates.
-5. MR3+: add integration tests around provider-to-executor flow.
+5. MR3: add integration tests around looped provider-to-executor flow.
 
 ## Checkpoint 0 (MR0): MR Validation Pipeline
 Branch: `ci/pipeline-validation`
@@ -282,7 +282,44 @@ Branch: `feat/ollama-primary-with-rule-fallback`
 3. `feat(fallback): add ollama-to-rule fallback behavior`
 4. `chore(logging): add provider decision and fallback logs`
 
-## Checkpoint 3 (MR3): Observability Baseline + Telemetry Adapter
+## Checkpoint 3 (MR3): Agent Runtime Loop Foundation (Pre-MCP)
+Branch: `feat/agent-loop-runtime-foundation`
+
+### Scope
+1. Introduce stepwise agent orchestration loop:
+   - decide next action/tool call
+   - execute one step
+   - observe structured result
+   - re-decide until stop or step budget reached
+2. Add bounded runtime controls:
+   - max step budget
+   - total provider budget and per-step timeout guards
+   - bounded repair/retry policy for invalid model output
+3. Standardize action result envelope for planner/synthesis/MCP reuse:
+   - status
+   - message
+   - structured data payload
+4. Keep fallback deterministic:
+   - if loop fails or budget exceeded, fallback to `RuleProvider` when enabled
+5. Keep transport-agnostic boundaries:
+   - no MCP server layer yet
+   - runtime core should be reusable by future MCP handler
+
+### Acceptance Gate (MR3)
+1. `npm run build` succeeds.
+2. At least one compound intent completes through stepwise loop (for example `hit pig` style flow).
+3. Step/time budgets are enforced and produce non-crashing fallback/error behavior.
+4. Structured action result envelope is used consistently in runtime path.
+5. Rule fallback remains reliable when loop or provider path fails.
+6. Unit/integration tests cover loop, budget, and fallback behavior.
+
+### Optional Commit Examples (MR3)
+1. `feat(runtime): add iterative agent loop orchestration`
+2. `feat(runtime): add step and latency budget controls`
+3. `refactor(actions): normalize action result envelope`
+4. `test(runtime): add multi-step intent integration tests`
+
+## Checkpoint 4 (MR4): Observability Baseline + Telemetry Adapter
 Branch: `feat/observability-telemetry-adapter`
 
 ### Scope
@@ -293,22 +330,27 @@ Branch: `feat/observability-telemetry-adapter`
    - decision parse/fallback reason
    - action start/result/error
    - timing/latency
-3. Keep telemetry sink local-first by default.
-4. Add optional Langfuse sink behind adapter without changing core orchestration logic.
+3. Include loop-step telemetry:
+   - step index
+   - budget usage
+   - repair attempts
+4. Keep telemetry sink local-first by default.
+5. Add optional Langfuse sink behind adapter without changing core orchestration logic.
 
-### Acceptance Gate (MR3)
+### Acceptance Gate (MR4)
 1. `npm run build` succeeds.
 2. Telemetry events are consistently produced for chat and action lifecycle.
-3. Core runtime behavior remains unchanged (observability is non-breaking).
-4. Optional external sink can be enabled without modifying provider/executor internals.
+3. Loop-step telemetry is present and structured.
+4. Core runtime behavior remains unchanged (observability is non-breaking).
+5. Optional external sink can be enabled without modifying provider/executor internals.
 
-### Optional Commit Examples (MR3)
+### Optional Commit Examples (MR4)
 1. `feat(obs): add telemetry adapter interface`
 2. `feat(obs): emit structured local runtime events`
 3. `feat(obs): add optional langfuse sink integration`
 4. `docs: add observability configuration and event contract`
 
-## Checkpoint 4 (MR4): Remove Bedrock Code and Dependencies
+## Checkpoint 5 (MR5): Remove Bedrock Code and Dependencies
 Branch: `chore/remove-bedrock-code-deps`
 
 ### Scope
@@ -317,23 +359,23 @@ Branch: `chore/remove-bedrock-code-deps`
 3. Remove AWS Bedrock dependencies from `agent_ts/package.json`.
 4. Clean README/env docs for local-first setup.
 
-### Acceptance Gate (MR4)
+### Acceptance Gate (MR5)
 1. `npm run build` succeeds.
 2. No imports or references to Bedrock/AWS SDK remain in `agent_ts/src`.
 3. Bot behavior remains unchanged for rule + Ollama flow.
 4. Default run remains no-AWS.
 
-### Optional Commit Examples (MR4)
+### Optional Commit Examples (MR5)
 1. `refactor(cleanup): remove bedrock runtime code`
 2. `chore(deps): remove aws bedrock dependencies`
 3. `docs: update local-first setup and environment examples`
 
-## Checkpoint 5 (MR5): MCP Tool Exposure for Agent Runtime
+## Checkpoint 6 (MR6): MCP Tool Exposure for Agent Runtime
 Branch: `feat/mcp-tool-surface-v1`
 
 ### Scope
 1. Add an MCP server layer that exposes approved NPC actions as tools.
-2. Keep MCP tool handlers mapped to the same action executor and safety layer used by chat orchestration.
+2. Keep MCP tool handlers mapped to the same runtime loop, action executor, and safety layer used by chat orchestration.
 3. Expose initial tool set:
    - `action_jump`
    - `action_move_to_location`
@@ -343,7 +385,7 @@ Branch: `feat/mcp-tool-surface-v1`
    - `action_get_player_location`
    - `action_get_time`
    - `action_is_raining`
-4. Define explicit MCP schemas for tool arguments and responses.
+4. Define explicit MCP schemas for tool arguments and responses using shared tool/result contracts.
 5. Keep `action_build` out of MCP surface until redesigned.
 
 ### MCP Safety Rules
@@ -352,17 +394,17 @@ Branch: `feat/mcp-tool-surface-v1`
 3. Enforce timeout and cooldown at MCP invocation boundary.
 4. Return structured errors for invalid/disallowed requests (no process crash).
 
-### Acceptance Gate (MR5)
+### Acceptance Gate (MR6)
 1. `npm run build` succeeds.
 2. MCP server starts successfully in local mode.
-3. Each exposed tool can be invoked through MCP and reaches executor path.
+3. Each exposed tool can be invoked through MCP and reaches shared runtime/executor path.
 4. Safety policy is enforced consistently for MCP and chat entrypoints.
 5. `action_build` is not exposed and remains blocked.
 
-### Optional Commit Examples (MR5)
+### Optional Commit Examples (MR6)
 1. `feat(mcp): add server bootstrap and tool registry`
 2. `feat(mcp): expose core action tools with schemas`
-3. `feat(mcp): connect tool handlers to shared executor`
+3. `feat(mcp): connect tool handlers to shared runtime/executor`
 4. `feat(safety): enforce policy at mcp boundary`
 5. `docs: add mcp usage and local run instructions`
 
@@ -371,6 +413,12 @@ Branch: `feat/mcp-tool-surface-v1`
 AI_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.1:8b
+OLLAMA_KEEP_ALIVE=30m
+OLLAMA_TEMPERATURE=0
+OLLAMA_NUM_PREDICT=128
+PROVIDER_TIMEOUT_MS=5000
+ENABLE_RESPONSE_SYNTHESIS=true
+RESPONSE_SYNTHESIS_TIMEOUT_MS=2500
 ENABLE_RULE_FALLBACK=true
 ENABLE_SAFETY=true
 MAX_ACTIONS_PER_MESSAGE=3

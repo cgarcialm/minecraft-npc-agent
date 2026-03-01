@@ -78,11 +78,63 @@ From Ollama metrics, total latency can come from:
 
 ## Project-Specific Next Steps
 1. Keep MR2 focused on robust provider loop + strict contracts + fallback.
-2. In MR5, expose existing registry/executor via MCP server primitives (no duplicated policy logic).
+2. In MR6, expose existing registry/executor via MCP server primitives (no duplicated policy logic).
 3. Add integration tests for multi-step intents:
 - `hit pig` => find -> approach -> attack
 - target not found => explicit user reply
 - invalid tool call => repair once, then fallback
+
+## Handoff Observations For Next Implementation Session
+These items were identified during MR2 delivery/review and should guide upcoming MCP-agent implementation work.
+
+1. Scope boundary recommendation
+- Keep MR2 focused on `OllamaProvider` primary behavior, strict decision validation, fallback reliability, and safety compatibility.
+- Move larger orchestration redesign into MCP-agent track (or a dedicated pre-MCP runtime MR).
+
+2. Runtime architecture priority (for MCP-agent work)
+- Introduce iterative stepwise orchestration: `decide -> execute one tool step -> observe -> re-decide`, with bounded `max_steps`.
+- Avoid single-shot assumptions for compound intents (`hit pig`, `find then attack`, etc.).
+
+3. Shared contracts (avoid technical debt)
+- Continue using one shared tool registry for:
+  - tool descriptions + input schema
+  - output schema/result envelope
+  - runtime validation
+  - future MCP `tools/list` serialization
+- Do not duplicate tool contracts across chat and MCP entrypoints.
+
+4. Provider boundary cleanup
+- Separate concerns explicitly:
+  - decision provider (tool planning/calling)
+  - response synthesizer (final user-facing sentence)
+- Keep fallback logic deterministic and observable.
+
+5. Latency and budget controls
+- Keep strict time budgets and fail fast to fallback where configured.
+- Add explicit knobs for:
+  - max provider repairs
+  - max total provider ms per user message
+  - max synthesis ms
+- Prevent extra LLM calls on known-fallback paths.
+
+6. Telemetry maturity target
+- Add typed telemetry adapter (MR4-aligned) with correlation IDs.
+- Capture per-turn/per-step metrics:
+  - provider total/prompt/eval/load timing
+  - repair count
+  - fallback reason
+  - action execution duration
+
+7. Result normalization requirement
+- Normalize action results into a consistent response envelope (`status`, `message`, `data`) so synthesis and MCP tool responses remain predictable.
+
+8. Test strategy upgrades
+- Keep unit tests for provider parsing/validation/fallback.
+- Add integration tests for:
+  - fallback + synthesis interaction
+  - timeout budget enforcement
+  - compound multi-step intent completion
+  - target-not-found behavior with clear user response
 
 ## Sources
 1. MCP Architecture: https://modelcontextprotocol.io/docs/learn/architecture
