@@ -168,7 +168,14 @@ async function processChatCommand(username: string, message: string) {
     }
 
     if (!hasChatResponse) {
-      if (responseSynthesizer && enableResponseSynthesis) {
+      const shouldSynthesize = Boolean(
+        responseSynthesizer
+        && enableResponseSynthesis
+        && selection.providerName === 'ollama'
+        && !selection.fallbackReason,
+      );
+
+      if (shouldSynthesize && responseSynthesizer) {
         try {
           const synthesized = await responseSynthesizer.synthesize({
             user: username,
