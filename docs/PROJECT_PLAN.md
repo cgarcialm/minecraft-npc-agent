@@ -85,12 +85,52 @@ Log these events per message:
 Commit structure is guidance, not a hard contract.
 If design evolves, adjust commit grouping as long as each MR remains reviewable and acceptance gates are met.
 
+### Multi-Agent MR Workflow (Required)
+Use three focused agents per MR:
+1. Implementation Agent
+2. Testing Agent
+3. Review Agent
+
+Execution order:
+1. Implementation Agent delivers scoped code changes for the checkpoint.
+2. Testing Agent adds/updates tests and executes checklist validation packs.
+3. Review Agent performs a review pass for regressions, safety gaps, and missing tests.
+
+Merge gate:
+1. An MR is merge-ready only when all three roles are completed and documented in the MR description.
+
+Required MR notes:
+1. Implementation summary (files changed + rationale).
+2. Testing evidence (commands run + results).
+3. Review findings (issues found/fixed, or explicit "no findings").
+
+Reference checklists:
+1. Implementation: `docs/IMPLEMENTATION_CHECKLIST.md`
+2. Testing: `docs/TESTING_CHECKLIST.md`
+3. Review: `docs/REVIEW_CHECKLIST.md`
+
+### Role Guidelines
+Implementation Agent:
+1. Stay within checkpoint scope and branch scope.
+2. Keep behavior changes testable and update docs/config when required.
+3. Do not bypass safety rules or acceptance criteria.
+
+Testing Agent:
+1. Apply the `docs/TESTING_CHECKLIST.md` gates relevant to changed areas.
+2. Add/update unit tests for all behavior changes.
+3. Record exact pass/fail evidence for build, lint/test (when enforced), and runtime checks.
+
+Review Agent:
+1. Prioritize bug risk, behavior regressions, safety violations, and missing tests.
+2. Verify acceptance gate coverage for the active checkpoint.
+3. Block merge if critical findings are unresolved.
+
 ### Branch Criteria (All MRs)
 1. Create each MR branch from the latest `main`.
 2. Use one branch per checkpoint MR; do not mix multiple checkpoints in one MR.
 3. Keep branch names descriptive and checkpoint-aligned (examples listed per checkpoint below).
 4. Merge order follows checkpoint order unless a documented dependency requires reordering.
-5. Do not merge an MR unless its acceptance gate and testing checklist gates are satisfied.
+5. Do not merge an MR unless its acceptance gate and implementation/testing/review checklist gates are satisfied.
 6. Keep each MR focused; unrelated changes must move to a different branch/MR.
 
 ### Branch Workflow (Required)
@@ -114,7 +154,7 @@ git push -u origin <branch-name>
 ```
 
 ### Branch Naming Convention
-Use: `<type>/<checkpoint>-<short-scope>`
+Use: `<type>/<short-scope>`
 
 Examples:
 1. `ci/pipeline-validation`
@@ -149,7 +189,7 @@ Testing is a first-class workstream, not only a final validation step.
 5. MR3+: add integration tests around provider-to-executor flow.
 
 ## Checkpoint 0 (MR0): MR Validation Pipeline
-Branch: `ci/mr-validation-pipeline`
+Branch: `ci/pipeline-validation`
 
 ### Scope
 1. Add CI workflow(s) to run on pull requests.

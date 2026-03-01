@@ -3,6 +3,8 @@
 Use this before every commit and before merging any pull request.
 
 ## Current Testing Status
+Status note: this section reflects the current checkpoint state and must be updated as enforcement milestones are completed.
+
 1. Type checking is available now via `npm run build` (`tsc`).
 2. Linting is not guaranteed yet (depends on whether `npm run lint` exists).
 3. Automated tests are currently not enforced as a stable baseline:
@@ -10,7 +12,7 @@ Use this before every commit and before merging any pull request.
    - no confirmed project-wide integration test suite is required in CI yet
    - test execution is conditional until test scripts and coverage targets are formalized
 4. Manual Minecraft LAN runtime checks are currently required.
-5. Policy decision: this is temporary; automated unit tests become required merge gates by MR2.
+5. Policy decision: temporary exceptions must be time-boxed and resolved according to `docs/PROJECT_PLAN.md`.
 
 ## Non-Negotiable Gates (Always)
 1. Working tree sanity:
@@ -65,7 +67,7 @@ Pass criteria:
 - Test suite passes.
 
 If lint/test scripts are not configured yet, note the temporary exception in the PR description.
-No exception is allowed once MR2 testing enforcement is active.
+Exception end-state/timeline is defined in `docs/PROJECT_PLAN.md`.
 
 ## Validation Packs (Choose by Change Type)
 
@@ -147,7 +149,6 @@ Pass criteria:
 
 If any required gate fails, do not merge.
 
-## Enforcement Rollout
-1. MR0: CI enforces build/typecheck.
-2. MR1: lint + test runner + initial unit tests are introduced.
-3. MR2 onward: CI enforces `npm run lint` and `npm test` as required merge gates.
+## Enforcement Rollout Reference
+Testing enforcement timeline is defined in:
+1. `docs/PROJECT_PLAN.md`

@@ -9,9 +9,12 @@ Thanks for contributing.
 4. Use clear commit messages (`feat(...)`, `fix(...)`, `refactor(...)`, `chore(...)`).
 
 ## Planning and Checkpoints
-Follow the project plan and testing gates:
-1. `docs/PROJECT_PLAN.md`
+Follow the documentation index:
+1. `docs/README.md`
+Required for every MR:
+1. `docs/IMPLEMENTATION_CHECKLIST.md`
 2. `docs/TESTING_CHECKLIST.md`
+3. `docs/REVIEW_CHECKLIST.md`
 
 ## Development Expectations
 1. Keep changes focused in `agent_ts/src` unless broader change is necessary.
@@ -20,7 +23,7 @@ Follow the project plan and testing gates:
 4. Avoid introducing unrelated refactors in the same PR.
 
 ## Before Opening a PR
-1. Run required checks from `docs/TESTING_CHECKLIST.md`.
+1. Run required checks from implementation/testing/review checklists in `docs/`.
 2. Ensure `npm run build` passes in `agent_ts`.
 3. Confirm the diff matches only intended scope.
 

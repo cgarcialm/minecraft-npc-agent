@@ -18,8 +18,7 @@ This fork is moving to a local-first architecture:
 
 ## Project Plan
 Planning and checkpoints are documented here:
-1. `docs/PROJECT_PLAN.md`
-2. `docs/TESTING_CHECKLIST.md`
+1. `docs/README.md`
 
 ## Core Runtime (Planned)
 1. Provider abstraction (`RuleProvider`, `OllamaProvider`).
@@ -69,7 +68,7 @@ npm run start:dev
 
 ## Testing and Commit Gates
 Before commit or MR, follow:
-1. `docs/TESTING_CHECKLIST.md`
+1. `docs/README.md`
 
 ## Status
 This repository is in active refactor toward a local-first agent runtime.
