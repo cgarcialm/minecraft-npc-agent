@@ -1,5 +1,4 @@
 import { Config } from '../config';
-import { HybridProvider } from './hybrid-provider';
 import { ProviderRouter } from './provider-router';
 import { OllamaProvider } from './ollama-provider';
 import { RuleProvider } from './rule-provider';
@@ -21,13 +20,12 @@ export function createProviderRouter(config: Config): ProviderRouter {
   }
 
   if (config.aiProvider === 'ollama') {
-    const llmProvider = new OllamaProvider(config.ollamaBaseUrl, config.ollamaModel, {
+    const primary = new OllamaProvider(config.ollamaBaseUrl, config.ollamaModel, {
       keepAlive: config.ollamaKeepAlive,
       temperature: config.ollamaTemperature,
       numPredict: config.ollamaNumPredict,
       timeoutMs: config.providerTimeoutMs,
     });
-    const primary = config.enableFastPath ? new HybridProvider(ruleProvider, llmProvider) : llmProvider;
     const fallback = config.enableRuleFallback ? ruleProvider : undefined;
     return new ProviderRouter(primary, fallback, config.enableRuleFallback);
   }

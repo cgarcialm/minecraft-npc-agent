@@ -200,34 +200,9 @@ async function processChatCommand(username: string, message: string) {
   }
 }
 
-function buildDeterministicReply(actionResults: Array<{ ok: boolean; action: { name: string }; response?: unknown }>): string {
+function buildDeterministicReply(actionResults: Array<{ ok: boolean; action: { name: string } }>): string {
   if (actionResults.length === 0) {
     return 'I heard you. Tell me what action to take.';
-  }
-
-  for (const result of actionResults) {
-    if (!result.ok || !result.response || typeof result.response !== 'object') {
-      continue;
-    }
-
-    const response = result.response as Record<string, unknown>;
-    if (typeof response.isRaining === 'boolean') {
-      return response.isRaining ? 'Yes, it is raining right now.' : 'No, it is not raining right now.';
-    }
-
-    if (typeof response.found === 'string') {
-      return `I found ${response.found}.`;
-    }
-
-    if (response.location && typeof response.location === 'object') {
-      const location = response.location as Record<string, unknown>;
-      const x = location.x;
-      const y = location.y;
-      const z = location.z;
-      if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') {
-        return `Location is x ${x.toFixed(1)}, y ${y.toFixed(1)}, z ${z.toFixed(1)}.`;
-      }
-    }
   }
 
   const successfulActions = actionResults

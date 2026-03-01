@@ -12,7 +12,6 @@ export interface Config {
   mcVersion: string;
 
   aiProvider: string;
-  enableFastPath: boolean;
   ollamaBaseUrl: string;
   ollamaModel: string;
   ollamaKeepAlive: string;
@@ -68,7 +67,6 @@ export const loadConfig = async (): Promise<Config> => {
     mcVersion: process.env.MC_VERSION || '1.20.1',
 
     aiProvider: process.env.AI_PROVIDER || 'ollama',
-    enableFastPath: parseBoolean(process.env.ENABLE_FAST_PATH, true),
     ollamaBaseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
     ollamaModel: process.env.OLLAMA_MODEL || 'llama3.1:8b',
     ollamaKeepAlive: process.env.OLLAMA_KEEP_ALIVE || '30m',
