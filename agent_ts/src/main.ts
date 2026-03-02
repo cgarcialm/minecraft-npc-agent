@@ -2,6 +2,7 @@ import { MyFunctionHandler } from './action-handler';
 import { loadConfig } from './config';
 import { ActionExecutor } from './execution/action-executor';
 import { createProviderRouter } from './providers/provider-factory';
+import { OllamaResponseSynthesizer } from './providers/ollama-response-synthesizer';
 
 import * as dotenv from 'dotenv';
 dotenv.config();
@@ -17,6 +18,8 @@ const collectblock = require('mineflayer-collectblock').plugin;
 let mcBot: any;
 let providerRouter: ReturnType<typeof createProviderRouter>;
 let executor: ActionExecutor;
+let responseSynthesizer: OllamaResponseSynthesizer | undefined;
+let enableResponseSynthesis = false;
 let messageQueue: Promise<void> = Promise.resolve();
 
 function logEvent(event: string, payload: Record<string, unknown>): void {
@@ -41,6 +44,15 @@ async function startBot() {
 
     const functionHandler = new MyFunctionHandler(mcBot, mcData);
     providerRouter = createProviderRouter(config);
+    await providerRouter.warmup();
+    enableResponseSynthesis = config.enableResponseSynthesis && config.aiProvider === 'ollama';
+    responseSynthesizer = enableResponseSynthesis
+      ? new OllamaResponseSynthesizer(
+        config.ollamaBaseUrl,
+        config.ollamaModel,
+        config.responseSynthesisTimeoutMs,
+      )
+      : undefined;
     executor = new ActionExecutor(functionHandler, config, logEvent, async () => {
       mcBot.clearControlStates();
       if (mcBot.pathfinder?.stop) {
@@ -116,6 +128,7 @@ async function processChatCommand(username: string, message: string) {
 
   try {
     const selection = await providerRouter.handleMessage(providerInput);
+    let hasChatResponse = false;
 
     logEvent('provider_selected', {
       provider: selection.providerName,
@@ -131,8 +144,9 @@ async function processChatCommand(username: string, message: string) {
       decision: selection.decision,
     });
 
-    if (selection.decision.reply) {
+    if (selection.decision.reply && selection.decision.reply.trim().length > 0) {
       mcBot.chat(selection.decision.reply);
+      hasChatResponse = true;
     }
 
     const actionResults = await executor.execute(username, selection.decision.actions);
@@ -140,6 +154,7 @@ async function processChatCommand(username: string, message: string) {
     for (const result of actionResults) {
       if (!result.ok && result.error) {
         mcBot.chat(`Could not run ${result.action.name}: ${result.error}`);
+        hasChatResponse = true;
         continue;
       }
 
@@ -147,7 +162,42 @@ async function processChatCommand(username: string, message: string) {
         const responseMessage = (result.response as Record<string, unknown>).message;
         if (typeof responseMessage === 'string') {
           mcBot.chat(responseMessage);
+          hasChatResponse = true;
         }
+      }
+    }
+
+    if (!hasChatResponse) {
+      const shouldSynthesize = Boolean(
+        responseSynthesizer
+        && enableResponseSynthesis
+        && selection.providerName === 'ollama'
+        && !selection.fallbackReason,
+      );
+
+      if (shouldSynthesize && responseSynthesizer) {
+        try {
+          const synthesized = await responseSynthesizer.synthesize({
+            user: username,
+            message,
+            providerReply: selection.decision.reply,
+            actions: selection.decision.actions,
+            actionResults,
+          });
+          if (synthesized) {
+            mcBot.chat(synthesized);
+            hasChatResponse = true;
+          }
+        } catch (synthesisError) {
+          const synthesisMessage = synthesisError instanceof Error ? synthesisError.message : 'response synthesis failed';
+          logEvent('fallback_reason', {
+            reason: synthesisMessage,
+          });
+        }
+      }
+
+      if (!hasChatResponse) {
+        mcBot.chat(buildDeterministicReply(actionResults));
       }
     }
   } catch (error) {
@@ -155,6 +205,22 @@ async function processChatCommand(username: string, message: string) {
     logEvent('action_error', { error: messageText });
     mcBot.chat(`I could not process that request: ${messageText}`);
   }
+}
+
+function buildDeterministicReply(actionResults: Array<{ ok: boolean; action: { name: string } }>): string {
+  if (actionResults.length === 0) {
+    return 'I heard you. Tell me what action to take.';
+  }
+
+  const successfulActions = actionResults
+    .filter((result) => result.ok)
+    .map((result) => result.action.name);
+
+  if (successfulActions.length > 0) {
+    return `Done: ${successfulActions.join(', ')}.`;
+  }
+
+  return 'I could not complete that request.';
 }
 
 function getPlayerLocation(username: string): { x: number; y: number; z: number } | undefined {

@@ -24,6 +24,7 @@ export interface AgentProviderInput {
 export interface AgentProvider {
   readonly name: string;
   handleMessage(input: AgentProviderInput): Promise<AgentDecision>;
+  warmup?(): Promise<void>;
 }
 
 export interface ProviderSelectionResult {

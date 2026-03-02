@@ -1,5 +1,6 @@
 import { Config } from '../config';
 import { ProviderRouter } from './provider-router';
+import { OllamaProvider } from './ollama-provider';
 import { RuleProvider } from './rule-provider';
 import { AgentProvider, AgentProviderInput, AgentDecision } from './types';
 
@@ -16,6 +17,17 @@ export function createProviderRouter(config: Config): ProviderRouter {
 
   if (config.aiProvider === 'rule') {
     return new ProviderRouter(ruleProvider, undefined, false);
+  }
+
+  if (config.aiProvider === 'ollama') {
+    const primary = new OllamaProvider(config.ollamaBaseUrl, config.ollamaModel, {
+      keepAlive: config.ollamaKeepAlive,
+      temperature: config.ollamaTemperature,
+      numPredict: config.ollamaNumPredict,
+      timeoutMs: config.providerTimeoutMs,
+    });
+    const fallback = config.enableRuleFallback ? ruleProvider : undefined;
+    return new ProviderRouter(primary, fallback, config.enableRuleFallback);
   }
 
   const primary = new UnsupportedPrimaryProvider(config.aiProvider);
